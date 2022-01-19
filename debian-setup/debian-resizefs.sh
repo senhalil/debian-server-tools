@@ -35,8 +35,9 @@ LUKS_PARTITION="$(fdisk -l | grep "$(echo $DECRYPTED_LUKS_PARTITION_NAME | cut -
 echo "******************************************************************************************************************"
 echo -e "ROOT_DEVICE=\"${ROOT_DEVICE}\" \t\t will be resized to \t ROOT_SIZE=\"${ROOT_SIZE}\""
 echo -e "SWAP_DEVICE=\"${SWAP_DEVICE}\" \t\t will be resised to \t SWAP_SIZE=\"${SWAP_SIZE}\""
-echo -e "HOME_DEVICE=\"${HOME_DEVICE}\" \t\t will be generated with the remaning free space in \t VOLUME_GROUP_NAME=\"${VOLUME_GROUP_NAME}\""
+echo -e "HOME_DEVICE=\"${HOME_DEVICE}\" \t\t will be generated with the remaning free space"
 echo "with:"
+echo -e "VOLUME_GROUP_NAME=\"${VOLUME_GROUP_NAME}\""
 echo -e "LUKS_PARTITION=\"${LUKS_PARTITION}\""
 echo -e "DECRYPTED_LUKS_PARTITION_NAME=\"${DECRYPTED_LUKS_PARTITION_NAME}\""
 echo "******************************************************************************************************************"
@@ -44,7 +45,8 @@ echo "**************************************************************************
 read -rp $'If the settings look okay, press [Enter] key to continue!\nOtherwise, quit with [Ctrl+C].'
 
 
-echo "******************Copying the needed programs (copy_exec)*********************************************************"
+echo "******************************************************************************************************************"
+echo "****************** Copying the needed programs (copy_exec) *******************************************************"
 # Copy e2fsck and resize2fs to initrd
 cat > /etc/initramfs-tools/hooks/resize2fs <<"EOF"
 #!/bin/sh
@@ -82,7 +84,8 @@ EOF
 chmod +x /etc/initramfs-tools/hooks/resize2fs
 
 
-echo "******************Creating the script to resize root, swap partition and create a home partition******************"
+echo "******************************************************************************************************************"
+echo "****************** Creating the script to resize root, swap partition and create a home partition ****************"
 # Execute resize2fs before mounting root filesystem
 cat > /etc/initramfs-tools/scripts/init-premount/resize <<EOF
 #!/bin/sh
@@ -142,20 +145,23 @@ EOF
 chmod +x /etc/initramfs-tools/scripts/init-premount/resize
 
 
-echo "******************Removing quite and splash from /etc/default/grub************************************************" 
+echo "******************************************************************************************************************"
+echo '****************** Removing "quite splash" from /etc/default/grub ************************************************'
 sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"/GRUB_CMDLINE_LINUX_DEFAULT=""/' /etc/default/grub
-update-grub
+update-grub  &> /dev/null                               || echo "update-grub ERROR: \$?  "
 
-echo "******************Regenerate initrd (can take a few seconds)******************************************************"
-update-initramfs -u
+echo "******************************************************************************************************************"
+echo "****************** Regenerate initramfs (can take a few seconds) *************************************************"
+update-initramfs -u  &> /dev/null                       || echo "update-initramfs ERROR: \$?  "
 
-echo "******************Remove initramfs files and remove GRUB modifications********************************************"
+
+echo "******************************************************************************************************************"
+echo "****************** Revert initramfs files and remove GRUB modifications ******************************************"
 rm -f /etc/initramfs-tools/hooks/resize2fs /etc/initramfs-tools/scripts/init-premount/resize
 sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=""/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"/' /etc/default/grub
 
 
 echo "******************************************************************************************************************"
-
 read -rp $'If there are no errors, press [Enter] key to continue!\nOtherwise, quit with [Ctrl+C]!\n\n(\"Possible missing firmware\" warnings can be ignored: they are about CPUs/GPUs that do not exist on the current system)'
 
 
