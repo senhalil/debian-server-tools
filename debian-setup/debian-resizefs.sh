@@ -162,23 +162,39 @@ sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=""/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash
 
 
 echo "******************************************************************************************************************"
-read -rp $'If there are no errors, press [Enter] key to continue!\nOtherwise, quit with [Ctrl+C]!\n\n(\"Possible missing firmware\" warnings can be ignored: they are about CPUs/GPUs that do not exist on the current system)'
+echo "****************** Create a script to be run after the next reboot to reset the grub and initramfs modifications *"
+cat > /etc/init.d/revert-resize-grub-initramfs-settings <<EOF
+#!/bin/sh
 
+### BEGIN INIT INFO
+# Provides:		revert-resize-grub-initramfs-settings
+# Required-Start:	\$all
+# Required-Stop:	\$all
+# Default-Start:	2 3 4 5
+# Default-Stop:	0 1 6
+# Short-Description:	Reverts the initramfs and grub modifications made by the script.
+### END INIT INFO
+
+case "\$1" in
+    start)
+    	echo "Updating grub and initramfs"
+    	update-grub         &> /dev/null || echo "update-grub ERROR: \$?  "
+    	update-initramfs -u &> /dev/null || echo "update-initramfs ERROR: \$?  "
+    	echo "Deleting the home backup"
+    	rm -r /old_$HOME_NAME
+    	echo "Disabling the service and deleting the script"
+    	update-rc.d -f revert-resize-grub-initramfs-settings remove
+    	rm /etc/init.d/revert-resize-grub-initramfs-settings
+        ;;
+    stop|restart|reload)
+    	;;
+esac
+EOF
+chmod +x /etc/init.d/revert-resize-grub-initramfs-settings
+update-rc.d revert-resize-grub-initramfs-settings defaults
 
 echo "******************************************************************************************************************"
-read -rp $'!IMPORTANT!\n\nAfter the reboot, the following commands need to be executed (to put the initramfs and grub to their original states):\nupdate-initramfs -u\nupdate-grub\n\nand /old_'"$HOME_NAME"$' folder can be deleted (rm -r /old_'"$HOME_NAME"$') after verifying that everything is in order.\n\nIf you are ready, press [Enter] key to continue with reboot.'
+read -rp $'If there are no errors*, press [Enter] key to continue with reboot!\nOtherwise, quit with [Ctrl+C]!\n\n*: \"Possible missing firmware\" warnings can be ignored -- they are about CPUs/GPUs that do not exist on the current system.'
 
 echo "reboot"
 reboot
-
-
-
-
-
-
-# # AFTER THE REBOOT #
-# echo "Reset GRUB and initramfs"
-# update-initramfs -u
-# update-grub
-# echo "Delete home backup (if everything is in order)"
-# rm -r /old_$HOME_NAME
