@@ -10,8 +10,7 @@
 
 
 ROOT_SIZE="75G" # New size of root filesystem
-SWAP_SIZE="24G" # 1.5x of RAM if hibernation is allowed https://docs.fedoraproject.org/en-US/Fedora/26/html/Installation_Guide/sect-installation-gui-manual-partitioning-recommended.html
-HOME_NAME="home" # This will be created with the remaining free space of the disk
+SWAP_SIZE="24G" # 1.5x of RAM incase hibernation will be allowed https://docs.fedoraproject.org/en-US/Fedora/26/html/Installation_Guide/sect-installation-gui-manual-partitioning-recommended.html
 
 
 # No need to touch anything down below unless there is an issue with the script. \
@@ -20,6 +19,7 @@ HOME_NAME="home" # This will be created with the remaining free space of the dis
 VOLUME_GROUP_NAME="$(vgs --noheadings -o vg_name | xargs)"
 ROOT_DEVICE="$(lvs --noheadings -o lv_dm_path ${VOLUME_GROUP_NAME} | grep root | xargs)"
 SWAP_DEVICE="$(lvs --noheadings -o lv_dm_path ${VOLUME_GROUP_NAME} | grep swap | xargs)"
+HOME_NAME="home" # This will be created with the remaining free space of the disk
 HOME_DEVICE="$(echo ${ROOT_DEVICE} | sed -s "s/root/${HOME_NAME}/")"
 
 
@@ -194,7 +194,7 @@ chmod +x /etc/init.d/revert-resize-grub-initramfs-settings
 update-rc.d revert-resize-grub-initramfs-settings defaults
 
 echo "******************************************************************************************************************"
-read -rp $'If there are no errors*, press [Enter] key to continue with reboot!\nOtherwise, quit with [Ctrl+C]!\n\n*: \"Possible missing firmware\" warnings can be ignored -- they are about CPUs/GPUs that do not exist on the current system.'
+read -rp $'If there are no errors, unplug all usb sticks and external disks and press [Enter] key to continue with reboot!\nOtherwise, quit with [Ctrl+C]!'
 
 echo "reboot"
 reboot
